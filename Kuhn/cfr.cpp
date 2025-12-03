@@ -7,7 +7,7 @@ void CFR::print_metrics(int num_iterations) const
     float total_pos = 0;
     float max_pos = 0;
 
-    for (auto const &[info_set, strategy] : strategy_sum)
+    for (auto const &[info_set, strategy] : regret_sum)
     {
         for (float val : strategy)
         {
@@ -82,7 +82,7 @@ void CFR::train(int num_iterations)
         cfr_iterate(state, 1.0f, 1.0f);
 
         if ((i + 1) % 1000 == 0)
-            print_metrics(i);
+            print_metrics(i + 1);
     }
 
     std::cout << "Training complete.\n";
@@ -150,7 +150,7 @@ std::pair<float, float> CFR::cfr_iterate(KuhnState &state, float p1, float p2)
     }
 
     // immediate counterfactual regret update
-    int opponent_reach = (player == PLAYER_1) ? p2 : p1;
+    double opponent_reach = (player == PLAYER_1) ? p2 : p1;
     int util_idx = (player == PLAYER_1) ? 0 : 1;
 
     for (int i = 0; i < n; ++i)

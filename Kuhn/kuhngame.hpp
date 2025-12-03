@@ -10,10 +10,10 @@
 
 struct KuhnState
 {
-    float p1_contribution{0.0f};
-    float p2_contribution{0.0f};
+    float p1_contribution{1.0f};
+    float p2_contribution{1.0f};
 
-    float pot{0.0f};
+    float pot{2.0f};
 
     History history{""};
 
