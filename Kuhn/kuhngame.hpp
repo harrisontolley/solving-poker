@@ -46,4 +46,6 @@ public:
     void print_game_state(KuhnState const &state) const;
 
     char read_player_action() const;
+
+    inline int card_rank(char c) const;
 };

@@ -126,7 +126,9 @@ std::pair<float, float> KuhnGame::get_payoffs(KuhnState const &state) const
 
     if (state.history == H_CALL_CALL || state.history == H_BET_CALL || state.history == H_CALL_BET_CALL)
     {
-        winner = (state.cards_dealt[0] > state.cards_dealt[1]) ? 1 : 2;
+        int p1_rank = card_rank(state.cards_dealt[0]);
+        int p2_rank = card_rank(state.cards_dealt[1]);
+        winner = (p1_rank > p2_rank) ? 1 : 2;
     }
     else if (state.history == H_BET_FOLD)
     {
@@ -174,4 +176,19 @@ void KuhnGame::print_game_state(KuhnState const &state) const
     std::cout << "Pot: " << state.pot << "\n";
     std::cout << "History: " << state.history << "\n";
     std::cout << "Cards Dealt: " << state.cards_dealt << "\n";
+}
+
+inline int KuhnGame::card_rank(char c) const
+{
+    switch (c)
+    {
+    case 'J':
+        return 0;
+    case 'Q':
+        return 1;
+    case 'K':
+        return 2;
+    default:
+        return -1; // or throw
+    }
 }
