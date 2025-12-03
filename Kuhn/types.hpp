@@ -22,3 +22,7 @@ inline const std::string H_BET_CALL = "bc";
 inline const std::string H_BET_FOLD = "bf";
 inline const std::string H_CALL_BET_CALL = "cbc";
 inline const std::string H_CALL_BET_FOLD = "cbf";
+
+inline const int CHANCE_PLAYER = 0;
+inline const int PLAYER_1 = 1;
+inline const int PLAYER_2 = 2;

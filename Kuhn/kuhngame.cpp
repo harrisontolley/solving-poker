@@ -27,9 +27,9 @@ bool KuhnGame::is_terminal(KuhnState const &state) const
 int KuhnGame::get_current_player(KuhnState const &state) const
 {
     if (state.cards_dealt.length() < 2)
-        return 0; // chance node
+        return CHANCE_PLAYER; // chance node
 
-    return (state.history.length() % 2 == 0) ? 1 : 2;
+    return (state.history.length() % 2 == 0) ? PLAYER_1 : PLAYER_2;
 }
 
 std::vector<char> KuhnGame::get_legal_actions(KuhnState const &state) const
