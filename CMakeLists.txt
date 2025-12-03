@@ -14,7 +14,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Library target for game logic
 add_library(kuhn_lib
 Kuhn/kuhngame.cpp
-Kuhn/cfr.cpp)
+)
 
 # Include directories for kuhn_lib
 target_include_directories(kuhn_lib

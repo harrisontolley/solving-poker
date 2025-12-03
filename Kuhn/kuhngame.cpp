@@ -1,4 +1,6 @@
 #include "kuhngame.hpp"
+#include "commontypes.hpp"
+#include "kuhntypes.hpp"
 #include <stdexcept>
 #include <tuple>
 #include <string>
@@ -32,7 +34,7 @@ int KuhnGame::get_current_player(KuhnState const &state) const
     return (state.history.length() % 2 == 0) ? PLAYER_1 : PLAYER_2;
 }
 
-ActionSet KuhnGame::get_legal_actions(KuhnState const &state) const
+std::vector<KuhnAction> KuhnGame::get_legal_actions(State const &state) const
 {
     if (state.history == H_NO_MOVES_PLAYED || state.history == H_CALL)
     {
@@ -45,7 +47,6 @@ ActionSet KuhnGame::get_legal_actions(KuhnState const &state) const
 
     return {};
 }
-
 KuhnState KuhnGame::transition(KuhnState const &state, Action action) const
 {
     KuhnState new_state = state;
@@ -54,12 +55,12 @@ KuhnState KuhnGame::transition(KuhnState const &state, Action action) const
     int player = KuhnGame::get_current_player(state);
     if (action == BET)
     {
-        if (player == 1)
+        if (player == PLAYER_1)
         {
             new_state.p1_contribution += 1;
             new_state.pot += 1;
         }
-        else if (player == 2)
+        else if (player == PLAYER_2)
         {
             new_state.p2_contribution += 1;
             new_state.pot += 1;
@@ -67,12 +68,12 @@ KuhnState KuhnGame::transition(KuhnState const &state, Action action) const
     }
     else if (action == CALL && (state.history == H_BET || state.history == H_CALL_BET))
     {
-        if (player == 1)
+        if (player == PLAYER_1)
         {
             new_state.p1_contribution += 1;
             new_state.pot += 1;
         }
-        else if (player == 2)
+        else if (player == PLAYER_2)
         {
             new_state.p2_contribution += 1;
             new_state.pot += 1;
@@ -81,7 +82,7 @@ KuhnState KuhnGame::transition(KuhnState const &state, Action action) const
     return new_state;
 }
 
-std::tuple<KuhnState, float> KuhnGame::chance_transition(KuhnState const &state) const
+std::pair<KuhnState, double> KuhnGame::chance_transition(KuhnState const &state) const
 {
     KuhnState new_state = state;
 
@@ -120,7 +121,7 @@ std::tuple<KuhnState, float> KuhnGame::chance_transition(KuhnState const &state)
     throw std::runtime_error("Chance transition called in non-chance state");
 }
 
-std::pair<float, float> KuhnGame::get_payoffs(KuhnState const &state) const
+std::pair<double, double> KuhnGame::get_payoffs(KuhnState const &state) const
 {
     int winner;
 
@@ -155,11 +156,11 @@ std::pair<float, float> KuhnGame::get_payoffs(KuhnState const &state) const
 
 std::string KuhnGame::get_information_set(KuhnState const &state, int player) const
 {
-    if (player == 1)
+    if (player == PLAYER_1)
     {
         return state.cards_dealt.substr(0, 1) + state.history;
     }
-    else if (player == 2)
+    else if (player == PLAYER_2)
     {
         return state.cards_dealt.substr(1, 1) + state.history;
     }

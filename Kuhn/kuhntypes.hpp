@@ -1,14 +1,13 @@
 #pragma once
+#include "commontypes.hpp"
 #include <string>
 #include <vector>
 
 using History = std::string;
-using Action = char;
 using CardsDealt = std::string;
 
-using InfoSet = std::string;
-using Strategy = std::vector<float>;
-using ActionSet = std::vector<Action>;
+using KuhnAction = char;
+using KuhnActionSet = std::vector<KuhnAction>;
 
 inline const char BET = 'b';
 inline const char CALL = 'c';
@@ -23,7 +22,3 @@ inline const std::string H_BET_CALL = "bc";
 inline const std::string H_BET_FOLD = "bf";
 inline const std::string H_CALL_BET_CALL = "cbc";
 inline const std::string H_CALL_BET_FOLD = "cbf";
-
-inline const int CHANCE_PLAYER = 0;
-inline const int PLAYER_1 = 1;
-inline const int PLAYER_2 = 2;

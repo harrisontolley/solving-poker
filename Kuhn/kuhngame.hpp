@@ -1,51 +1,44 @@
-#include "types.hpp"
-
-#include <string>
-#include <vector>
-#include <tuple>
-#include <array>
-#include <utility>
-
 #pragma once
+#include "kuhntypes.hpp"
+#include "commontypes.hpp"
+#include <array>
+#include <tuple>
+#include <utility>
 
 struct KuhnState
 {
-    float p1_contribution{1.0f};
-    float p2_contribution{1.0f};
-
-    float pot{2.0f};
+    double p1_contribution{1.0};
+    double p2_contribution{1.0};
+    double pot{2.0};
 
     History history{""};
-
     CardsDealt cards_dealt{""};
 };
 
 class KuhnGame
 {
 public:
-    KuhnGame() = default;
+    using State = KuhnState;
+    using Action = KuhnAction;
+    using InfoSet = ::InfoSet; // from commontypes
 
     inline static constexpr std::array<char, 3> CARDS{'J', 'Q', 'K'};
 
-    KuhnState get_initial_state() const;
+    State get_initial_state() const;
 
-    bool is_terminal(KuhnState const &state) const;
+    bool is_terminal(State const &state) const;
+    int get_current_player(State const &state) const;
 
-    int get_current_player(KuhnState const &state) const;
+    std::vector<Action> get_legal_actions(State const &state) const;
+    State transition(State const &state, Action action) const;
 
-    ActionSet get_legal_actions(KuhnState const &state) const;
+    std::pair<State, double> chance_transition(State const &state) const;
+    std::pair<double, double> get_payoffs(State const &state) const;
 
-    KuhnState transition(KuhnState const &state, Action action) const;
+    InfoSet get_information_set(State const &state, int player) const;
 
-    std::tuple<KuhnState, float> chance_transition(KuhnState const &state) const;
+    void print_game_state(State const &state) const;
 
-    std::pair<float, float> get_payoffs(KuhnState const &state) const;
-
-    std::string get_information_set(KuhnState const &state, int player) const;
-
-    void print_game_state(KuhnState const &state) const;
-
-    char read_player_action() const;
-
-    inline int card_rank(char c) const;
+private:
+    int card_rank(char c) const;
 };

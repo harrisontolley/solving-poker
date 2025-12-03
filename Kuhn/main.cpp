@@ -1,15 +1,12 @@
 #include "kuhngame.hpp"
-#include <iostream>
+#include "cfr.hpp"
 
 int main()
 {
-    KuhnGame game{};
-    int player_1_wins = 0;
-    int player_2_wins = 0;
+    KuhnGame game;
+    CFR<KuhnGame> cfr{game};
 
-    while (!game.is_terminal(game.get_initial_state()))
-    {
-    }
+    cfr.train(100000);
 
     return 0;
 }
