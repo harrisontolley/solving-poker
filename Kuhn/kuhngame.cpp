@@ -120,7 +120,7 @@ std::tuple<KuhnState, float> KuhnGame::chance_transition(KuhnState const &state)
     throw std::runtime_error("Chance transition called in non-chance state");
 }
 
-std::pair<int, int> KuhnGame::get_payoffs(KuhnState const &state) const
+std::pair<float, float> KuhnGame::get_payoffs(KuhnState const &state) const
 {
     int winner;
 

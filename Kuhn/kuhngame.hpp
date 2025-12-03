@@ -10,10 +10,10 @@
 
 struct KuhnState
 {
-    int p1_contribution{0};
-    int p2_contribution{0};
+    float p1_contribution{0.0f};
+    float p2_contribution{0.0f};
 
-    int pot{0};
+    float pot{0.0f};
 
     History history{""};
 
@@ -39,7 +39,7 @@ public:
 
     std::tuple<KuhnState, float> chance_transition(KuhnState const &state) const;
 
-    std::pair<int, int> get_payoffs(KuhnState const &state) const;
+    std::pair<float, float> get_payoffs(KuhnState const &state) const;
 
     std::string get_information_set(KuhnState const &state, int player) const;
 
