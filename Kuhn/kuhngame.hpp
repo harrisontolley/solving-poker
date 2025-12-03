@@ -33,7 +33,7 @@ public:
 
     int get_current_player(KuhnState const &state) const;
 
-    std::vector<char> get_legal_actions(KuhnState const &state) const;
+    ActionSet get_legal_actions(KuhnState const &state) const;
 
     KuhnState transition(KuhnState const &state, Action action) const;
 

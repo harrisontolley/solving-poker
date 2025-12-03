@@ -32,7 +32,7 @@ int KuhnGame::get_current_player(KuhnState const &state) const
     return (state.history.length() % 2 == 0) ? PLAYER_1 : PLAYER_2;
 }
 
-std::vector<char> KuhnGame::get_legal_actions(KuhnState const &state) const
+ActionSet KuhnGame::get_legal_actions(KuhnState const &state) const
 {
     if (state.history == H_NO_MOVES_PLAYED || state.history == H_CALL)
     {

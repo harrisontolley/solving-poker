@@ -8,6 +8,7 @@ using CardsDealt = std::string;
 
 using InfoSet = std::string;
 using Strategy = std::vector<float>;
+using ActionSet = std::vector<char>;
 
 inline const char BET = 'b';
 inline const char CALL = 'c';
