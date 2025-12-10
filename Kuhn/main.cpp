@@ -6,7 +6,7 @@ int main()
     KuhnGame game;
     CFR<KuhnGame> cfr{game};
 
-    cfr.train(100000);
+    cfr.train(10000);
 
     return 0;
 }

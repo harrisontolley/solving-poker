@@ -39,6 +39,8 @@ public:
 
     void print_game_state(State const &state) const;
 
+    std::string action_to_string(Action a) const;
+
 private:
     int card_rank(char c) const;
 };

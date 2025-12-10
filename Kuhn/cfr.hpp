@@ -6,7 +6,7 @@
 #include <utility>
 #include <iostream>
 #include <algorithm>
-
+#include <iomanip>
 template <class Game>
 class CFR
 {
@@ -21,7 +21,10 @@ public:
     void train(int num_iterations);
 
     std::unordered_map<InfoSet, Strategy> get_average_strategy() const;
+
     void print_metrics(int num_iterations) const;
+
+    void print_strategies() const;
 
 private:
     Game game_;
@@ -29,6 +32,8 @@ private:
     std::unordered_map<InfoSet, Strategy> regret_sum_;
     std::unordered_map<InfoSet, Strategy> strategy_sum_;
     std::unordered_map<InfoSet, int> num_actions_;
+
+    std::unordered_map<InfoSet, std::vector<Action>> actions_by_infoset_;
 
     Strategy regret_match(InfoSet const &info_set);
     std::pair<double, double> cfr_iterate(State const &state, double p1, double p2);
@@ -130,13 +135,7 @@ void CFR<Game>::train(int num_iterations)
     }
 
     std::cout << "Training complete.\n";
-    for (auto const &[infoset, strat] : get_average_strategy())
-    {
-        std::cout << "InfoSet: " << infoset << " Strategy: ";
-        for (double p : strat)
-            std::cout << p << ", ";
-        std::cout << "\n";
-    }
+    print_strategies();
 }
 
 // Single CFR recursion iteration with chance-sampling
@@ -166,6 +165,7 @@ CFR<Game>::cfr_iterate(State const &state, double p1, double p2)
         regret_sum_[infoset] = Strategy(n, 0.0);
         strategy_sum_[infoset] = Strategy(n, 0.0);
         num_actions_[infoset] = n;
+        actions_by_infoset_[infoset] = actions;
     }
 
     Strategy sigma = regret_match(infoset);
@@ -206,4 +206,52 @@ CFR<Game>::cfr_iterate(State const &state, double p1, double p2)
     }
 
     return node_value;
+}
+
+template <class Game>
+void CFR<Game>::print_strategies() const
+{
+    auto avg = get_average_strategy();
+
+    // Collect and sort infosets for deterministic output
+    std::vector<InfoSet> keys;
+    keys.reserve(avg.size());
+    for (auto const &kv : avg)
+        keys.push_back(kv.first);
+
+    std::sort(keys.begin(), keys.end());
+
+    std::cout << "Average strategy by information set:\n";
+
+    for (auto const &infoset : keys)
+    {
+        auto const &strat = avg.at(infoset);
+        std::cout << "InfoSet: " << infoset << "\n";
+
+        auto it = actions_by_infoset_.find(infoset);
+
+        if (it == actions_by_infoset_.end())
+        {
+            // Fallback
+            for (size_t i = 0; i < strat.size(); ++i)
+            {
+                std::cout << "  Action " << i
+                          << " : " << std::fixed << std::setprecision(4)
+                          << strat[i] << "\n";
+            }
+        }
+        else
+        {
+            auto const &actions = it->second;
+            for (size_t i = 0; i < strat.size() && i < actions.size(); ++i)
+            {
+                std::cout << "  "
+                          << game_.action_to_string(actions[i]) // Game-specific label
+                          << " : " << std::fixed << std::setprecision(4)
+                          << strat[i] << "\n";
+            }
+        }
+
+        std::cout << "\n";
+    }
 }

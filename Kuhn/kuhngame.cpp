@@ -193,3 +193,18 @@ inline int KuhnGame::card_rank(char c) const
         return -1; // or throw
     }
 }
+
+std::string KuhnGame::action_to_string(Action a) const
+{
+    switch (a)
+    {
+    case CALL:
+        return "CALL (c)";
+    case BET:
+        return "BET  (b)";
+    case FOLD:
+        return "FOLD (f)";
+    default:
+        return std::string("UNKNOWN (") + a + ")";
+    }
+}

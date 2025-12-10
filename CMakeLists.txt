@@ -14,11 +14,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Library target for game logic
 add_library(kuhn_lib
 Kuhn/kuhngame.cpp
+Leduc/leducgame.cpp
 )
 
 # Include directories for kuhn_lib
 target_include_directories(kuhn_lib
-PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Kuhn)
+PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Kuhn
+PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Leduc
+)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(kuhn_lib PRIVATE
@@ -29,7 +32,9 @@ endif()
 
 # Executable target
 add_executable(kuhn_poker Kuhn/main.cpp)
-
 # Link executable to game logic
 target_link_libraries(kuhn_poker PRIVATE kuhn_lib)
 
+
+add_executable(leduc_poker Leduc/main.cpp)
+target_link_libraries(leduc_poker PRIVATE kuhn_lib)
