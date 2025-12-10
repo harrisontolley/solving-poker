@@ -1,0 +1,31 @@
+#pragma once
+
+#include <string>
+#include <vector>
+#include "commontypes.hpp"
+
+using History = std::string;
+using Card = std::string;
+using LeducAction = char;
+
+inline constexpr int PREFLOP = 0;
+inline constexpr int FLOP = 1;
+
+inline const Card NO_CARD{" "};
+
+inline constexpr char BET = 'B';
+inline constexpr char CALL = 'C';
+inline constexpr char FOLD = 'F';
+
+inline const History H_R_EMPTY = "";
+
+inline const History H_R_CHECK = "C";
+inline const History H_R_BET = "B";
+
+inline const History H_R_CHECK_CHECK = "CC";
+inline const History H_R_CHECK_BET = "CB";
+inline const History H_R_BET_CALL = "BC";
+inline const History H_R_BET_FOLD = "BF";
+
+inline const History H_R_CHECK_BET_CALL = "CBC";
+inline const History H_R_CHECK_BET_FOLD = "CBF";
