@@ -3,6 +3,9 @@
 #include <string>
 #include <vector>
 
+inline constexpr bool VERBOSE_DEFAULT = false;
+inline constexpr bool CFR_VERBOSE_DEFAULT = false;
+
 using KuhnAction = char;
 
 inline constexpr char BET = 'b';

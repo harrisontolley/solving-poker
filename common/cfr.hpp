@@ -56,8 +56,11 @@ void CFR<Game>::print_metrics(int num_iterations) const
         }
     }
 
-    std::cout << "Avg pos regret / iter = " << (total_pos / num_iterations) << "\n";
-    std::cout << "Max pos regret / iter = " << (max_pos / num_iterations) << "\n";
+    if (game_.cfr_verbose)
+    {
+        std::cout << "Avg pos regret / iter = " << (total_pos / num_iterations) << "\n";
+        std::cout << "Max pos regret / iter = " << (max_pos / num_iterations) << "\n";
+    }
 }
 
 template <class Game>

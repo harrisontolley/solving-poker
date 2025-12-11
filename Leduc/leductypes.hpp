@@ -4,6 +4,9 @@
 #include <vector>
 #include "commontypes.hpp"
 
+inline constexpr bool VERBOSE_DEFAULT = false;
+inline constexpr bool CFR_VERBOSE_DEFAULT = false;
+
 using LeducAction = char;
 
 inline constexpr int PREFLOP = 0;

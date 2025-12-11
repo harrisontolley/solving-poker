@@ -24,6 +24,9 @@ public:
     using Action = KuhnAction;
     using InfoSet = ::InfoSet; // from commontypes
 
+    bool verbose{VERBOSE_DEFAULT};
+    bool cfr_verbose{CFR_VERBOSE_DEFAULT};
+
     inline static constexpr std::array<char, 3> CARDS{'J', 'Q', 'K'};
 
     State get_initial_state() const;

@@ -26,6 +26,9 @@ public:
     using Action = LeducAction;
     using InfoSet = ::InfoSet; // from commontypes.hpp
 
+    bool verbose{VERBOSE_DEFAULT};
+    bool cfr_verbose{CFR_VERBOSE_DEFAULT};
+
     inline static constexpr std::array<char, 6> CARDS{'J', 'j', 'Q', 'q', 'K', 'k'};
 
     State get_initial_state() const;
