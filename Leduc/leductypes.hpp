@@ -11,6 +11,10 @@ using LeducAction = char;
 inline constexpr int PREFLOP = 0;
 inline constexpr int FLOP = 1;
 
+inline constexpr double ANTE = 1;
+inline constexpr double PREFLOP_RAISE_AMOUNT = 2;
+inline constexpr double FLOP_RAISE_AMOUNT = 4;
+
 inline const Card NO_CARD{" "};
 
 inline constexpr char BET = 'B';

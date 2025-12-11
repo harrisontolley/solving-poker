@@ -4,9 +4,9 @@
 
 struct LeducState
 {
-    double p1_contribution{1.0};
-    double p2_contribution{1.0};
-    double pot{2.0};
+    double p1_contribution{ANTE};
+    double p2_contribution{ANTE};
+    double pot{2.0 * ANTE};
 
     int betting_round{PREFLOP};
     History preflop{H_R_EMPTY};

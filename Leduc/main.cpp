@@ -6,7 +6,7 @@ int main()
     LeducGame game;
     CFR<LeducGame> cfr{game};
 
-    cfr.train(100000);
+    cfr.train(1000000);
 
     return 0;
 }

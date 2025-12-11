@@ -65,28 +65,32 @@ LeducState LeducGame::transition(LeducState const &state, LeducAction action) co
     // Update contributions / pot
     if (action == BET)
     {
+        int raise_amount = (state.betting_round == PREFLOP) ? PREFLOP_RAISE_AMOUNT : FLOP_RAISE_AMOUNT;
+
         if (state.player_turn == PLAYER_1)
         {
-            new_state.p1_contribution += 1;
-            new_state.pot += 1;
+            new_state.p1_contribution += raise_amount;
+            new_state.pot += raise_amount;
         }
         else if (state.player_turn == PLAYER_2)
         {
-            new_state.p2_contribution += 1;
-            new_state.pot += 1;
+            new_state.p2_contribution += raise_amount;
+            new_state.pot += raise_amount;
         }
     }
     else if (action == CALL)
     {
+        double amount_to_call = (state.player_turn == PLAYER_1)
+                                    ? state.p2_contribution - state.p1_contribution
+                                    : state.p1_contribution - state.p2_contribution;
+
         if (state.player_turn == PLAYER_1)
         {
-            double amount_to_call = state.p2_contribution - state.p1_contribution;
             new_state.p1_contribution += amount_to_call;
             new_state.pot += amount_to_call;
         }
         else if (state.player_turn == PLAYER_2)
         {
-            double amount_to_call = state.p1_contribution - state.p2_contribution;
             new_state.p2_contribution += amount_to_call;
             new_state.pot += amount_to_call;
         }
