@@ -4,7 +4,6 @@
 #include <vector>
 
 using KuhnAction = char;
-using KuhnActionSet = std::vector<KuhnAction>;
 
 inline constexpr char BET = 'b';
 inline constexpr char CALL = 'c';
