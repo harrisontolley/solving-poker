@@ -21,6 +21,7 @@ Leduc/leducgame.cpp
 target_include_directories(kuhn_lib
 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Kuhn
 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Leduc
+PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/common
 )
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -31,10 +32,10 @@ endif()
 
 
 # Executable target
-add_executable(kuhn_poker Kuhn/main.cpp)
+add_executable(kuhn Kuhn/main.cpp)
 # Link executable to game logic
-target_link_libraries(kuhn_poker PRIVATE kuhn_lib)
+target_link_libraries(kuhn PRIVATE kuhn_lib)
 
 
-add_executable(leduc_poker Leduc/main.cpp)
-target_link_libraries(leduc_poker PRIVATE kuhn_lib)
+add_executable(leduc Leduc/main.cpp)
+target_link_libraries(leduc PRIVATE kuhn_lib)
