@@ -3,22 +3,21 @@
 #include <string>
 #include <vector>
 
-using History = std::string;
-using CardsDealt = std::string;
-
 using KuhnAction = char;
 using KuhnActionSet = std::vector<KuhnAction>;
 
-inline const char BET = 'b';
-inline const char CALL = 'c';
-inline const char FOLD = 'f';
+inline constexpr char BET = 'b';
+inline constexpr char CALL = 'c';
+inline constexpr char FOLD = 'f';
 
-inline const std::string H_NO_MOVES_PLAYED = "";
-inline const std::string H_CALL = "c";
-inline const std::string H_BET = "b";
-inline const std::string H_CALL_BET = "cb";
-inline const std::string H_CALL_CALL = "cc";
-inline const std::string H_BET_CALL = "bc";
-inline const std::string H_BET_FOLD = "bf";
-inline const std::string H_CALL_BET_CALL = "cbc";
-inline const std::string H_CALL_BET_FOLD = "cbf";
+inline constexpr std::string H_NO_MOVES_PLAYED = "";
+inline constexpr std::string H_CALL = "c";
+inline constexpr std::string H_BET = "b";
+inline constexpr std::string H_CALL_BET = "cb";
+inline constexpr std::string H_CALL_CALL = "cc";
+inline constexpr std::string H_BET_CALL = "bc";
+inline constexpr std::string H_BET_FOLD = "bf";
+inline constexpr std::string H_CALL_BET_CALL = "cbc";
+inline constexpr std::string H_CALL_BET_FOLD = "cbf";
+
+inline constexpr double ANTE = 1.0;

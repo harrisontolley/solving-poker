@@ -28,7 +28,7 @@ bool KuhnGame::is_terminal(KuhnState const &state) const
 
 int KuhnGame::get_current_player(KuhnState const &state) const
 {
-    if (state.cards_dealt.length() < 2)
+    if (state.p1_card == NO_CARD || state.p2_card == NO_CARD)
         return CHANCE_PLAYER; // chance node
 
     return (state.history.length() % 2 == 0) ? PLAYER_1 : PLAYER_2;
@@ -86,26 +86,25 @@ std::pair<KuhnState, double> KuhnGame::chance_transition(KuhnState const &state)
 {
     KuhnState new_state = state;
 
-    if (state.cards_dealt.length() == 0)
+    if (state.p1_card == NO_CARD)
     {
         std::uniform_int_distribution<int> dist(0, 2);
         int idx = dist(rng);
 
         char dealt = KuhnGame::CARDS[idx];
-        new_state.cards_dealt += dealt;
+        new_state.p1_card = dealt;
 
         return {new_state, (1.0f / 3.0f)};
     }
 
-    else if (state.cards_dealt.length() == 1)
+    else if (state.p2_card == NO_CARD)
     {
-        char p1_card = state.cards_dealt[0];
-
         std::vector<char> remaining_cards;
 
         for (char c : KuhnGame::CARDS)
         {
-            if (c != p1_card)
+            std::string card_str(1, c);
+            if (card_str != state.p1_card)
                 remaining_cards.push_back(c);
         }
 
@@ -113,7 +112,7 @@ std::pair<KuhnState, double> KuhnGame::chance_transition(KuhnState const &state)
         int idx = dist(rng);
 
         char dealt = remaining_cards[idx];
-        new_state.cards_dealt += dealt;
+        new_state.p2_card = dealt;
 
         return {new_state, (1.0f / 2.0f)};
     }
@@ -127,8 +126,8 @@ std::pair<double, double> KuhnGame::get_payoffs(KuhnState const &state) const
 
     if (state.history == H_CALL_CALL || state.history == H_BET_CALL || state.history == H_CALL_BET_CALL)
     {
-        int p1_rank = card_rank(state.cards_dealt[0]);
-        int p2_rank = card_rank(state.cards_dealt[1]);
+        int p1_rank = card_rank(state.p1_card.at(0));
+        int p2_rank = card_rank(state.p2_card.at(0));
         winner = (p1_rank > p2_rank) ? 1 : 2;
     }
     else if (state.history == H_BET_FOLD)
@@ -156,18 +155,13 @@ std::pair<double, double> KuhnGame::get_payoffs(KuhnState const &state) const
 
 std::string KuhnGame::get_information_set(KuhnState const &state, int player) const
 {
-    if (player == PLAYER_1)
-    {
-        return state.cards_dealt.substr(0, 1) + state.history;
-    }
-    else if (player == PLAYER_2)
-    {
-        return state.cards_dealt.substr(1, 1) + state.history;
-    }
-    else
-    {
+    if (player != PLAYER_1 && player != PLAYER_2)
         throw std::runtime_error("Invalid player: " + std::to_string(player));
-    }
+
+    const Card &priv = (player == PLAYER_1 ? state.p1_card : state.p2_card);
+    std::string hist = state.history;
+
+    return priv + "|" + hist;
 }
 
 void KuhnGame::print_game_state(KuhnState const &state) const
@@ -176,7 +170,7 @@ void KuhnGame::print_game_state(KuhnState const &state) const
     std::cout << "Player 2 Contribution: " << state.p2_contribution << "\n";
     std::cout << "Pot: " << state.pot << "\n";
     std::cout << "History: " << state.history << "\n";
-    std::cout << "Cards Dealt: " << state.cards_dealt << "\n";
+    std::cout << "Cards Dealt: " << state.p1_card << ", " << state.p2_card << "\n";
 }
 
 inline int KuhnGame::card_rank(char c) const
@@ -207,4 +201,47 @@ std::string KuhnGame::action_to_string(Action a) const
     default:
         return std::string("UNKNOWN (") + a + ")";
     }
+}
+
+std::vector<std::pair<KuhnState, double>> KuhnGame::enumerate_chance_transitions(KuhnState const &state) const
+{
+    std::vector<std::pair<KuhnState, double>> outcomes;
+
+    if (state.p1_card == NO_CARD)
+    {
+        double p = 1.0 / CARDS.size();
+
+        for (char c : CARDS)
+        {
+            KuhnState s2 = state;
+            s2.p1_card = c;
+            outcomes.emplace_back(s2, p);
+        }
+    }
+    else if (state.p2_card == NO_CARD)
+    {
+        std::vector<char> remaining;
+
+        for (char c : CARDS)
+        {
+            std::string card_str(1, c);
+            if (card_str != state.p1_card)
+                remaining.push_back(c);
+        }
+
+        double p = 1.0 / remaining.size();
+
+        for (char c : remaining)
+        {
+            KuhnState s2 = state;
+            s2.p2_card = c;
+            outcomes.emplace_back(s2, p);
+        }
+    }
+    else
+    {
+        throw std::runtime_error("enumerate_chance_transitions called in non-chance state");
+    }
+
+    return outcomes;
 }

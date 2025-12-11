@@ -7,12 +7,14 @@
 
 struct KuhnState
 {
-    double p1_contribution{1.0};
-    double p2_contribution{1.0};
-    double pot{2.0};
+    double p1_contribution{ANTE};
+    double p2_contribution{ANTE};
+    double pot{2 * ANTE};
 
-    History history{""};
-    CardsDealt cards_dealt{""};
+    History history{H_R_EMPTY};
+
+    Card p1_card{NO_CARD};
+    Card p2_card{NO_CARD};
 };
 
 class KuhnGame
@@ -40,6 +42,8 @@ public:
     void print_game_state(State const &state) const;
 
     std::string action_to_string(Action a) const;
+
+    std::vector<std::pair<State, double>> enumerate_chance_transitions(State const &state) const;
 
 private:
     int card_rank(char c) const;

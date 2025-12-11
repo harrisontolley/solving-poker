@@ -288,3 +288,55 @@ std::string LeducGame::action_to_string(Action a) const
         return std::string("UNKNOWN (") + a + ")";
     }
 }
+
+std::vector<std::pair<LeducState, double>> LeducGame::enumerate_chance_transitions(LeducState const &state) const
+{
+    if (state.public_card != NO_CARD && state.p1_card != NO_CARD && state.p2_card != NO_CARD)
+        throw std::runtime_error("enumerate_chance_transitions called in non-chance state.");
+
+    std::vector<std::pair<LeducState, double>> outcomes;
+
+    // build remaining deck
+    std::vector<char> remaining_cards;
+    for (char card : CARDS)
+    {
+        std::string cs(1, card);
+        if (state.p1_card != cs and state.p2_card != cs && state.public_card != cs)
+            remaining_cards.push_back(card);
+    }
+
+    if (remaining_cards.empty())
+        throw std::runtime_error("No remaining cards in deck");
+
+    double p = 1.0 / static_cast<double>(remaining_cards.size());
+
+    for (char drawn : remaining_cards)
+    {
+        LeducState s2 = state;
+
+        if (state.p1_card == NO_CARD)
+        {
+            s2.p1_card = std::string(1, drawn);
+            s2.player_turn = CHANCE_PLAYER; // still dealing p2
+        }
+        else if (state.p2_card == NO_CARD)
+        {
+            s2.p2_card = std::string(1, drawn);
+            s2.player_turn = PLAYER_1; // start preflop betting
+        }
+        else if (state.public_card == NO_CARD)
+        {
+            s2.public_card = std::string(1, drawn);
+            s2.betting_round = FLOP;
+            s2.player_turn = PLAYER_1; // start flop betting
+        }
+        else
+        {
+            throw std::runtime_error("enumerate_chance_transitions called in non-chance state. All cards are already dealt.");
+        }
+
+        outcomes.emplace_back(s2, p);
+    }
+
+    return outcomes;
+}

@@ -47,6 +47,8 @@ public:
 
     std::string action_to_string(Action a) const;
 
+    std::vector<std::pair<State, double>> enumerate_chance_transitions(State const &state) const;
+
 private:
     int get_hand_strength(char private_card, char public_card) const;
 };
