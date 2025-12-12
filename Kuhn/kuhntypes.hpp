@@ -3,8 +3,9 @@
 #include <string>
 #include <vector>
 
-inline constexpr bool VERBOSE_DEFAULT = false;
-inline constexpr bool CFR_VERBOSE_DEFAULT = false;
+inline constexpr bool VERBOSE_DEFAULT = true;
+inline constexpr int VERBOSE_UPDATE_PERCENT = 10;
+inline constexpr bool CFR_VERBOSE_DEFAULT = true;
 
 using KuhnAction = char;
 

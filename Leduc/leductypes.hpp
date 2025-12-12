@@ -4,8 +4,9 @@
 #include <vector>
 #include "commontypes.hpp"
 
-inline constexpr bool VERBOSE_DEFAULT = false;
-inline constexpr bool CFR_VERBOSE_DEFAULT = false;
+inline constexpr bool VERBOSE_DEFAULT = true;
+inline constexpr int VERBOSE_UPDATE_PERCENT = 10;
+inline constexpr bool CFR_VERBOSE_DEFAULT = true;
 
 using LeducAction = char;
 

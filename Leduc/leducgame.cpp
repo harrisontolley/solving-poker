@@ -196,7 +196,8 @@ std::string LeducGame::get_information_set(LeducState const &state, int player) 
     const Card &priv = (player == PLAYER_1 ? state.p1_card : state.p2_card);
     std::string pub = (state.public_card == NO_CARD) ? "_" : state.public_card;
 
-    return priv + "|" + pub + "|" + state.preflop + "/" + state.flop;
+    // include player id to avoid collisions between P1 and P2 infosets
+    return std::to_string(player) + ":" + priv + "|" + pub + "|" + state.preflop + "/" + state.flop;
 }
 
 std::pair<double, double> LeducGame::get_payoffs(LeducState const &state) const

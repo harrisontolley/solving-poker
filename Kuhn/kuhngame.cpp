@@ -153,7 +153,7 @@ std::pair<double, double> KuhnGame::get_payoffs(KuhnState const &state) const
     }
 }
 
-std::string KuhnGame::get_information_set(KuhnState const &state, int player) const
+std::string KuhnGame::get_information_set(State const &state, int player) const
 {
     if (player != PLAYER_1 && player != PLAYER_2)
         throw std::runtime_error("Invalid player: " + std::to_string(player));
@@ -161,7 +161,8 @@ std::string KuhnGame::get_information_set(KuhnState const &state, int player) co
     const Card &priv = (player == PLAYER_1 ? state.p1_card : state.p2_card);
     std::string hist = state.history;
 
-    return priv + "|" + hist;
+    // Prefix with player id so P1 and P2 infosets never collide
+    return std::to_string(player) + ":" + priv + "|" + hist;
 }
 
 void KuhnGame::print_game_state(KuhnState const &state) const

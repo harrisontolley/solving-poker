@@ -7,7 +7,7 @@ int main()
     LeducGame game;
     CFR<LeducGame> cfr{game};
 
-    cfr.train(1000000);
+    cfr.train(1'000'000 / 1024);
 
     auto avg = cfr.get_average_strategy();
 

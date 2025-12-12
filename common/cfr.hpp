@@ -56,11 +56,8 @@ void CFR<Game>::print_metrics(int num_iterations) const
         }
     }
 
-    if (game_.cfr_verbose)
-    {
-        std::cout << "Avg pos regret / iter = " << (total_pos / num_iterations) << "\n";
-        std::cout << "Max pos regret / iter = " << (max_pos / num_iterations) << "\n";
-    }
+    std::cout << "Avg pos regret / iter = " << (total_pos / num_iterations) << "\n";
+    std::cout << "Max pos regret / iter = " << (max_pos / num_iterations) << "\n";
 }
 
 template <class Game>
@@ -133,8 +130,15 @@ void CFR<Game>::train(int num_iterations)
         State s = game_.get_initial_state();
         cfr_iterate(s, 1.0, 1.0);
 
-        if ((i + 1) % 1000 == 0)
+        if (!game_.cfr_verbose)
+            continue;
+
+        if ((i + 1) % (num_iterations / VERBOSE_UPDATE_PERCENT) == 0)
+        {
+            // print what percentage complete
+            std::cout << "==== CFR " << ((i + 1) * 100 / num_iterations) << "% complete. ====" << std::endl;
             print_metrics(i + 1);
+        }
     }
 
     std::cout << "Training complete.\n";
