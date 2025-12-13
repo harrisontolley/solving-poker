@@ -6,6 +6,9 @@
 inline constexpr bool VERBOSE_DEFAULT = true;
 inline constexpr int VERBOSE_UPDATE_PERCENT = 10;
 inline constexpr bool CFR_VERBOSE_DEFAULT = true;
+inline constexpr bool WRITE_LOG_FILE = true;
+inline constexpr char LOG_FILE_NAME[] = "kuhn_cfr_log.csv";
+inline constexpr int NUM_LOG_INTERVALS = 200;
 
 using KuhnAction = char;
 

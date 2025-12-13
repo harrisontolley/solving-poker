@@ -1,5 +1,6 @@
 #pragma once
 #include "commontypes.hpp"
+#include "datawriter.hpp"
 #include <unordered_map>
 #include <vector>
 #include <string>
@@ -35,7 +36,12 @@ private:
 
     std::unordered_map<InfoSet, std::vector<Action>> actions_by_infoset_;
 
+    bool write_log_file_ = WRITE_LOG_FILE;
+
+    DataWriter data_writer_{LOG_FILE_NAME};
+
     Strategy regret_match(InfoSet const &info_set);
+
     std::pair<double, double> cfr_iterate(State const &state, double p1, double p2);
 };
 
@@ -129,6 +135,13 @@ void CFR<Game>::train(int num_iterations)
     {
         State s = game_.get_initial_state();
         cfr_iterate(s, 1.0, 1.0);
+
+        // Log metrics to file if enabled
+        if (write_log_file_ && (i + 1) % (num_iterations / NUM_LOG_INTERVALS) == 0)
+        {
+            auto avg = get_average_strategy();
+            data_writer_.log_metrics(game_, i + 1, avg);
+        }
 
         if (!game_.cfr_verbose)
             continue;
