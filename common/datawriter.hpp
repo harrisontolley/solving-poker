@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 #include <limits>
+#include <filesystem>
 
 template <class Game>
 using Policy = std::unordered_map<typename Game::InfoSet, Strategy>;
@@ -17,7 +18,29 @@ public:
 
     DataWriter(const std::string &filename)
     {
-        logfile.open(filename, std::ios::out | std::ios::trunc);
+        namespace fs = std::filesystem;
+
+        fs::path out_dir{"output"};
+
+        std::error_code ec;
+
+        // make dir if it doesn't exist
+        if (!fs::exists(out_dir))
+        {
+            fs::create_directories(out_dir, ec);
+
+            if (ec)
+                std::cerr << "Failed to create output directory '" << out_dir.string() << "': " << ec.message() << "\n";
+        }
+
+        fs::path full_path = out_dir / filename;
+
+        logfile.open(full_path, std::ios::out | std::ios::trunc);
+
+        if (!logfile.is_open())
+            std::cerr << "Failed to open log file: " << full_path.string() << "\n";
+        else
+            logfile << "Iteration,PolicyEvaluation,NashConv\n"; // CSV header
     }
 
     ~DataWriter()
