@@ -39,8 +39,8 @@ public:
 
         if (!logfile.is_open())
             std::cerr << "Failed to open log file: " << full_path.string() << "\n";
-        else
-            logfile << "Iteration,PolicyEvaluation,NashConv\n"; // CSV header
+        // else
+        //     logfile << "Iteration,PolicyEvaluation,NashConv\n"; // CSV header
     }
 
     ~DataWriter()
