@@ -131,13 +131,17 @@ CFR<Game>::get_average_strategy() const
 template <class Game>
 void CFR<Game>::train(int num_iterations)
 {
+    // Determine how often to log
+    int log_every = num_iterations;
+    if (NUM_LOG_INTERVALS > 0)
+        log_every = std::max(1, num_iterations / NUM_LOG_INTERVALS);
+
     for (int i = 0; i < num_iterations; ++i)
     {
         State s = game_.get_initial_state();
         cfr_iterate(s, 1.0, 1.0);
 
-        // Log metrics to file if enabled
-        if (write_log_file_ && (i + 1) % (num_iterations / NUM_LOG_INTERVALS) == 0)
+        if (write_log_file_ && ((i + 1) % log_every == 0))
         {
             auto avg = get_average_strategy();
             data_writer_.log_metrics(game_, i + 1, avg);
@@ -148,8 +152,8 @@ void CFR<Game>::train(int num_iterations)
 
         if ((i + 1) % (num_iterations / VERBOSE_UPDATE_PERCENT) == 0)
         {
-            // print what percentage complete
-            std::cout << "==== CFR " << ((i + 1) * 100 / num_iterations) << "% complete. ====" << std::endl;
+            std::cout << "==== CFR " << ((i + 1) * 100 / num_iterations)
+                      << "% complete. ====" << std::endl;
             print_metrics(i + 1);
         }
     }
