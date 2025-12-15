@@ -4,7 +4,7 @@
 int main()
 {
     LeducGame game;
-    CFR<LeducGame> cfr{game};
+    CFRPlus<LeducGame> cfr{game};
 
     cfr.train(1'000'000);
 
