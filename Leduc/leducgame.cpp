@@ -43,7 +43,7 @@ std::vector<LeducAction> LeducGame::get_legal_actions(LeducState const &state) c
 
     if (h == H_R_EMPTY || h == H_R_CHECK)
     {
-        return {BET, CALL};
+        return {CALL, BET};
     }
     else if (h == H_R_BET || h == H_R_CHECK_BET)
     {
