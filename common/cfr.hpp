@@ -287,7 +287,9 @@ void CFR<Game>::train(int num_iterations)
         if (!game_.cfr_verbose)
             continue;
 
-        if ((i + 1) % (num_iterations / VERBOSE_UPDATE_PERCENT) == 0)
+        int denom = std::max(1, num_iterations / VERBOSE_UPDATE_PERCENT);
+
+        if ((i + 1) % denom == 0)
         {
             std::cout << "==== CFR " << ((i + 1) * 100 / num_iterations)
                       << "% complete. ====" << std::endl;
