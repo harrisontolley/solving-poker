@@ -95,12 +95,13 @@ protected:
         r = std::max(0.0, r + delta);
     }
 
+    // Recommended for strict CFR+:
     void on_strategy(typename Game::InfoSet const &is, Strategy const &sigma, double reach) override
     {
-        // linear weighting by iteration (t)
+        // CFR+ traditionally weights only by iteration, ignoring reach probability
         double w = static_cast<double>(this->iteration());
         for (std::size_t a = 0; a < sigma.size(); ++a)
-            this->strategy_sum_[is][a] += w * reach * sigma[a];
+            this->strategy_sum_[is][a] += w * sigma[a];
     }
 };
 
