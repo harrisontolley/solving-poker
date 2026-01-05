@@ -5,6 +5,7 @@
 #include <vector>
 #include <random>
 #include <cctype>
+#include <iostream>
 
 namespace
 {
@@ -16,14 +17,40 @@ LeducState LeducGame::get_initial_state() const
     return LeducState{};
 }
 
+bool LeducGame::is_round_complete(const History &h) const
+{
+    if (h.empty())
+        return false;
+
+    char last = h.back();
+
+    // fold ends the round (and game)
+    if (last == FOLD or h == "CC")
+        return true;
+
+    // Betting has settled: call ending a sequence involing bet or raise
+    // e.g. BC or BRC
+    if (last == CALL)
+    {
+        bool has_aggression = (h.find(BET) != std::string::npos) || (h.find(RAISE) != std::string::npos);
+        if (has_aggression)
+            return true;
+    }
+
+    return false;
+}
+
 bool LeducGame::is_terminal(LeducState const &state) const
 {
     const History &h = (state.betting_round == PREFLOP) ? state.preflop : state.flop;
 
-    if (h == H_R_BET_FOLD || h == H_R_CHECK_BET_FOLD)
+    if (h.empty())
+        return false;
+
+    if (h.back() == FOLD)
         return true;
 
-    if (state.betting_round == FLOP && (h == H_R_CHECK_CHECK || h == H_R_BET_CALL || h == H_R_CHECK_BET_CALL))
+    if (state.betting_round == FLOP && is_round_complete(h))
         return true;
 
     return false;
@@ -39,19 +66,28 @@ std::vector<LeducAction> LeducGame::get_legal_actions(LeducState const &state) c
     if (state.player_turn == CHANCE_PLAYER)
         return {}; // No legal actions for chance player
 
+    if (is_terminal(state))
+        return {};
+
     History const &h = (state.betting_round == PREFLOP) ? state.preflop : state.flop;
 
-    if (h == H_R_EMPTY || h == H_R_CHECK)
-    {
+    // Start of round or after a check
+    if (h.empty() || h == "C")
         return {CALL, BET};
-    }
-    else if (h == H_R_BET || h == H_R_CHECK_BET)
+
+    int aggresive_actions = 0;
+    for (char c : h)
     {
-        return {CALL, FOLD};
+        if (c == BET || c == RAISE)
+            aggresive_actions++;
     }
 
-    // No legal actions in other histories (terminal states)
-    return {};
+    // facing aggresion
+    std::vector<LeducAction> actions = {FOLD, CALL};
+    if (aggresive_actions < MAX_AGGRESIVE_ACTIONS)
+        actions.push_back(RAISE);
+
+    return actions;
 }
 
 LeducState LeducGame::transition(LeducState const &state, LeducAction action) const
@@ -62,69 +98,66 @@ LeducState LeducGame::transition(LeducState const &state, LeducAction action) co
     History &h = (state.betting_round == PREFLOP) ? new_state.preflop : new_state.flop;
     h += action;
 
-    // Update contributions / pot
-    if (action == BET)
-    {
-        int raise_amount = (state.betting_round == PREFLOP) ? PREFLOP_RAISE_AMOUNT : FLOP_RAISE_AMOUNT;
+    double increment = (state.betting_round == PREFLOP) ? PREFLOP_BET_INCREMENT : FLOP_BET_INCREMENT;
+    double &actor_contrib = (state.player_turn == PLAYER_1) ? new_state.p1_contribution : new_state.p2_contribution;
+    double &opp_contrib = (state.player_turn == PLAYER_1) ? new_state.p2_contribution : new_state.p1_contribution;
 
-        if (state.player_turn == PLAYER_1)
-        {
-            new_state.p1_contribution += raise_amount;
-            new_state.pot += raise_amount;
-        }
-        else if (state.player_turn == PLAYER_2)
-        {
-            new_state.p2_contribution += raise_amount;
-            new_state.pot += raise_amount;
-        }
+    if (action == FOLD)
+    {
+        // terminal state reached, no money changes
     }
     else if (action == CALL)
     {
-        double amount_to_call = (state.player_turn == PLAYER_1)
-                                    ? state.p2_contribution - state.p1_contribution
-                                    : state.p1_contribution - state.p2_contribution;
-
-        if (state.player_turn == PLAYER_1)
+        double amount_to_call = opp_contrib - actor_contrib;
+        if (amount_to_call > 0)
         {
-            new_state.p1_contribution += amount_to_call;
-            new_state.pot += amount_to_call;
-        }
-        else if (state.player_turn == PLAYER_2)
-        {
-            new_state.p2_contribution += amount_to_call;
+            actor_contrib += amount_to_call;
             new_state.pot += amount_to_call;
         }
     }
-
-    // Determine if the round has ended and how
-    bool round_complete =
-        (h == H_R_CHECK_CHECK) ||
-        (h == H_R_BET_CALL) ||
-        (h == H_R_CHECK_BET_CALL) ||
-        (h == H_R_BET_FOLD) ||
-        (h == H_R_CHECK_BET_FOLD);
-
-    bool fold =
-        (h == H_R_BET_FOLD) ||
-        (h == H_R_CHECK_BET_FOLD);
-
-    if (!round_complete)
+    else if (action == BET)
     {
-        // Round still in progress: alternate player
+        actor_contrib += increment;
+        new_state.pot += increment;
+    }
+    else if (action == RAISE)
+    {
+        // Matches current deficit + adds increment
+        double amount_to_call = opp_contrib - actor_contrib;
+        double total_add = amount_to_call + increment;
+        actor_contrib += total_add;
+        new_state.pot += total_add;
+    }
+
+    // determine state progression
+    bool round_ended = is_round_complete(h);
+    bool folded = (!h.empty() && h.back() == FOLD);
+
+    if (!round_ended)
+    {
+        // switch turns
         new_state.player_turn = (state.player_turn == PLAYER_1) ? PLAYER_2 : PLAYER_1;
     }
     else
     {
-        if (state.betting_round == PREFLOP && !fold)
+        if (folded)
         {
-            // Preflop finished without a fold -> deal public card next
-            new_state.player_turn = CHANCE_PLAYER;
+            // round over - turn doesn't matter much, but keeping consistent
+            new_state.player_turn = (state.player_turn == PLAYER_1) ? PLAYER_2 : PLAYER_1;
         }
         else
         {
-            // Either preflop fold (terminal) or flop complete (terminal)
-            // No further actions
-            new_state.player_turn = (state.player_turn == PLAYER_1) ? PLAYER_2 : PLAYER_1;
+            // round finished
+            if (state.betting_round == PREFLOP)
+            {
+                // go to flop
+                new_state.player_turn = CHANCE_PLAYER;
+            }
+            else
+            {
+                // showdown
+                new_state.player_turn = (state.player_turn == PLAYER_1) ? PLAYER_2 : PLAYER_1;
+            }
         }
     }
 
@@ -133,12 +166,8 @@ LeducState LeducGame::transition(LeducState const &state, LeducAction action) co
 
 std::pair<LeducState, double> LeducGame::chance_transition(LeducState const &state) const
 {
-    if (state.public_card != NO_CARD &&
-        state.p1_card != NO_CARD &&
-        state.p2_card != NO_CARD)
-    {
+    if (state.public_card != NO_CARD && state.p1_card != NO_CARD && state.p2_card != NO_CARD)
         throw std::runtime_error("Chance transition called in non-chance state");
-    }
 
     LeducState new_state = state;
 
@@ -164,25 +193,18 @@ std::pair<LeducState, double> LeducGame::chance_transition(LeducState const &sta
     if (state.p1_card == NO_CARD)
     {
         new_state.p1_card = std::string(1, drawn);
-        // still chance's turn to deal p2
         new_state.player_turn = CHANCE_PLAYER;
     }
     else if (state.p2_card == NO_CARD)
     {
         new_state.p2_card = std::string(1, drawn);
-        // both private cards dealt: start preflop betting with P1
         new_state.player_turn = PLAYER_1;
     }
     else if (state.public_card == NO_CARD)
     {
         new_state.public_card = std::string(1, drawn);
         new_state.betting_round = FLOP;
-        // start flop betting with P1
         new_state.player_turn = PLAYER_1;
-    }
-    else
-    {
-        throw std::runtime_error("Chance transition called in non-chance state. All cards are already dealt.");
     }
 
     return {new_state, 1.0 / static_cast<double>(remaining_cards.size())};
@@ -190,61 +212,66 @@ std::pair<LeducState, double> LeducGame::chance_transition(LeducState const &sta
 
 std::string LeducGame::get_information_set(LeducState const &state, int player) const
 {
-    if (player != PLAYER_1 && player != PLAYER_2)
-        throw std::runtime_error("Invalid player: " + std::to_string(player));
-
     const Card &priv = (player == PLAYER_1 ? state.p1_card : state.p2_card);
     std::string pub = (state.public_card == NO_CARD) ? "_" : state.public_card;
 
     // include player id to avoid collisions between P1 and P2 infosets
     return std::to_string(player) + ":" + priv + "|" + pub + "|" + state.preflop + "/" + state.flop;
 }
-
 std::pair<double, double> LeducGame::get_payoffs(LeducState const &state) const
 {
-    const History &h = (state.betting_round == PREFLOP) ? state.preflop : state.flop;
-    int winner = -1;
+    const History &h_pre = state.preflop;
+    const History &h_flop = state.flop;
 
-    // Showdown on flop
-    if (h == H_R_CHECK_CHECK || h == H_R_BET_CALL || h == H_R_CHECK_BET_CALL)
+    // Check Folds
+    if (!h_pre.empty() && h_pre.back() == FOLD)
     {
-        int p1_strength = get_hand_strength(state.p1_card[0], state.public_card[0]);
-        int p2_strength = get_hand_strength(state.p2_card[0], state.public_card[0]);
+        // Determine who folded. The last player to act folded.
+        // Current state.player_turn was set to the NEXT player in transition,
+        // so the folder is the OPPONENT of the current player token.
+        // However, checking turn logic in transition is tricky.
+        // Easier: Check length. P1 acts 1st, 3rd... P2 acts 2nd, 4th...
+        int p1_moves = 0, p2_moves = 0;
+        // Count preflop moves
+        for (size_t i = 0; i < h_pre.length(); ++i)
+        {
+            if (i % 2 == 0)
+                p1_moves++;
+            else
+                p2_moves++;
+        }
+        // If fold happened preflop:
+        int winner = (h_pre.length() % 2 != 0) ? PLAYER_2 : PLAYER_1; // Odd length = P1 folded
 
-        if (p1_strength > p2_strength)
-            winner = PLAYER_1;
-        else if (p2_strength > p1_strength)
-            winner = PLAYER_2;
+        if (winner == PLAYER_1)
+            return {state.pot - state.p1_contribution, -state.p2_contribution};
         else
-            return {0.0, 0.0}; // split pot
-    }
-    else if (h == H_R_BET_FOLD)
-    {
-        // "BF": bettor is P1, folder is P2
-        winner = PLAYER_1;
-    }
-    else if (h == H_R_CHECK_BET_FOLD)
-    {
-        // "CBF": bettor is P2, folder is P1
-        winner = PLAYER_2;
-    }
-    else
-    {
-        throw std::runtime_error("Invalid terminal state in get_payoffs: " + h);
+            return {-state.p1_contribution, state.pot - state.p2_contribution};
     }
 
-    if (winner == PLAYER_1)
+    if (!h_flop.empty() && h_flop.back() == FOLD)
     {
+        // Similar logic for flop
+        int p1_moves = 0, p2_moves = 0;
+        // P1 starts Flop.
+        int winner = (h_flop.length() % 2 != 0) ? PLAYER_2 : PLAYER_1;
+
+        if (winner == PLAYER_1)
+            return {state.pot - state.p1_contribution, -state.p2_contribution};
+        else
+            return {-state.p1_contribution, state.pot - state.p2_contribution};
+    }
+
+    // Showdown
+    int p1_strength = get_hand_strength(state.p1_card[0], state.public_card[0]);
+    int p2_strength = get_hand_strength(state.p2_card[0], state.public_card[0]);
+
+    if (p1_strength > p2_strength)
         return {state.pot - state.p1_contribution, -state.p2_contribution};
-    }
-    else if (winner == PLAYER_2)
-    {
+    else if (p2_strength > p1_strength)
         return {-state.p1_contribution, state.pot - state.p2_contribution};
-    }
     else
-    {
-        throw std::runtime_error("Winner not determined in get_payoffs");
-    }
+        return {0.0, 0.0}; // Split
 }
 
 int LeducGame::get_hand_strength(char private_card, char public_card) const
@@ -279,10 +306,11 @@ std::string LeducGame::action_to_string(Action a) const
     switch (a)
     {
     case CALL:
-        // In Leduc, 'C' is "check" when no bet, "call" facing a bet.
         return "CHECK/CALL (C)";
     case BET:
         return "BET (B)";
+    case RAISE:
+        return "RAISE (R)";
     case FOLD:
         return "FOLD (F)";
     default:
@@ -290,54 +318,47 @@ std::string LeducGame::action_to_string(Action a) const
     }
 }
 
+void LeducGame::print_game_state(State const &state) const
+{
+    std::cout << "P1: " << state.p1_contribution << " | P2: " << state.p2_contribution << " | Pot: " << state.pot << "\n";
+    std::cout << "Preflop: " << state.preflop << " | Flop: " << state.flop << "\n";
+    std::cout << "Cards: " << state.p1_card << "/" << state.p2_card << " Public: " << state.public_card << "\n";
+}
+
 std::vector<std::pair<LeducState, double>> LeducGame::enumerate_chance_transitions(LeducState const &state) const
 {
-    if (state.public_card != NO_CARD && state.p1_card != NO_CARD && state.p2_card != NO_CARD)
-        throw std::runtime_error("enumerate_chance_transitions called in non-chance state.");
-
+    // Same wrapper as chance_transition but enumerating
     std::vector<std::pair<LeducState, double>> outcomes;
-
-    // build remaining deck
     std::vector<char> remaining_cards;
     for (char card : CARDS)
     {
         std::string cs(1, card);
-        if (state.p1_card != cs and state.p2_card != cs && state.public_card != cs)
+        if (state.p1_card != cs && state.p2_card != cs && state.public_card != cs)
             remaining_cards.push_back(card);
     }
-
-    if (remaining_cards.empty())
-        throw std::runtime_error("No remaining cards in deck");
 
     double p = 1.0 / static_cast<double>(remaining_cards.size());
 
     for (char drawn : remaining_cards)
     {
         LeducState s2 = state;
-
         if (state.p1_card == NO_CARD)
         {
             s2.p1_card = std::string(1, drawn);
-            s2.player_turn = CHANCE_PLAYER; // still dealing p2
+            s2.player_turn = CHANCE_PLAYER;
         }
         else if (state.p2_card == NO_CARD)
         {
             s2.p2_card = std::string(1, drawn);
-            s2.player_turn = PLAYER_1; // start preflop betting
+            s2.player_turn = PLAYER_1;
         }
         else if (state.public_card == NO_CARD)
         {
             s2.public_card = std::string(1, drawn);
             s2.betting_round = FLOP;
-            s2.player_turn = PLAYER_1; // start flop betting
+            s2.player_turn = PLAYER_1;
         }
-        else
-        {
-            throw std::runtime_error("enumerate_chance_transitions called in non-chance state. All cards are already dealt.");
-        }
-
         outcomes.emplace_back(s2, p);
     }
-
     return outcomes;
 }

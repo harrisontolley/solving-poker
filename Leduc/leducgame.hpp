@@ -54,4 +54,6 @@ public:
 
 private:
     int get_hand_strength(char private_card, char public_card) const;
+
+    bool is_round_complete(const History &h) const;
 };
