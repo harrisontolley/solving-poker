@@ -11,19 +11,17 @@ inline constexpr char LOG_FILE_NAME[] = "kuhn_cfr_log.csv";
 inline constexpr int NUM_LOG_INTERVALS = 10000;
 
 using KuhnAction = char;
-
-inline constexpr char BET = 'b';
-inline constexpr char CALL = 'c';
-inline constexpr char FOLD = 'f';
+using Card = std::string;
+inline const Card NO_CARD{" "};
 
 inline constexpr std::string H_NO_MOVES_PLAYED = "";
-inline constexpr std::string H_CALL = "c";
-inline constexpr std::string H_BET = "b";
-inline constexpr std::string H_CALL_BET = "cb";
-inline constexpr std::string H_CALL_CALL = "cc";
-inline constexpr std::string H_BET_CALL = "bc";
-inline constexpr std::string H_BET_FOLD = "bf";
-inline constexpr std::string H_CALL_BET_CALL = "cbc";
-inline constexpr std::string H_CALL_BET_FOLD = "cbf";
+inline constexpr std::string H_CALL = "C";
+inline constexpr std::string H_BET = "B";
+inline constexpr std::string H_CALL_BET = "CB";
+inline constexpr std::string H_CALL_CALL = "CC";
+inline constexpr std::string H_BET_CALL = "BC";
+inline constexpr std::string H_BET_FOLD = "BF";
+inline constexpr std::string H_CALL_BET_CALL = "CBC";
+inline constexpr std::string H_CALL_BET_FOLD = "CBF";
 
 inline constexpr double ANTE = 1.0;

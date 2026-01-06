@@ -12,8 +12,13 @@ using InfoSet = std::string;
 using Strategy = std::vector<double>;
 using StrategyProfile = std::unordered_map<InfoSet, Strategy>;
 using History = std::string;
-using Card = std::string;
+// using Card = std::string;
 
-inline const Card NO_CARD{" "};
+// inline const Card NO_CARD{" "};
 
 inline const History H_R_EMPTY = "";
+
+inline constexpr char BET = 'B';
+inline constexpr char CALL = 'C'; // Acts as Check if pot is even, Call if facing bet
+inline constexpr char FOLD = 'F';
+inline constexpr char RAISE = 'R';

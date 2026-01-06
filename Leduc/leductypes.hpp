@@ -12,6 +12,8 @@ inline constexpr char LOG_FILE_NAME[] = "leduc_cfr_log.csv";
 inline constexpr int NUM_LOG_INTERVALS = 10'000;
 
 using LeducAction = char;
+using Card = std::string;
+inline const Card NO_CARD{" "};
 
 inline constexpr int PREFLOP = 0;
 inline constexpr int FLOP = 1;
@@ -19,11 +21,6 @@ inline constexpr int FLOP = 1;
 inline constexpr double ANTE = 1;
 inline constexpr double PREFLOP_BET_INCREMENT = 2;
 inline constexpr double FLOP_BET_INCREMENT = 4;
-
-inline constexpr char BET = 'B';
-inline constexpr char CALL = 'C'; // Acts as Check if pot is even, Call if facing bet
-inline constexpr char FOLD = 'F';
-inline constexpr char RAISE = 'R';
 
 // Maximum aggresive accounts per round (bet + raise = 2)
 inline constexpr int MAX_AGGRESIVE_ACTIONS = 2;
