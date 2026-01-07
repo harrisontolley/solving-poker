@@ -1,7 +1,7 @@
 #pragma once
 
 #include "commontypes.hpp"
-#include "kuhnleducwriter.hpp"
+#include "datawriter.hpp"
 #include <unordered_map>
 #include <vector>
 #include <string>
