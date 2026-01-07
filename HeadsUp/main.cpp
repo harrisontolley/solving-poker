@@ -1,5 +1,5 @@
 #include "headsupgame.hpp"
-#include "mccfr.hpp"
+#include "cfr.hpp"
 #include <iostream>
 
 int main()

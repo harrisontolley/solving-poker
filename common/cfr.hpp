@@ -1,14 +1,71 @@
+// ===== common/cfr.hpp =====
 #pragma once
 
 #include "commontypes.hpp"
 #include "datawriter.hpp"
-#include <unordered_map>
-#include <vector>
-#include <string>
-#include <utility>
-#include <iostream>
+
 #include <algorithm>
 #include <iomanip>
+#include <iostream>
+#include <random>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+namespace solver_detail
+{
+    inline Strategy regret_matching(const std::vector<double> &regrets)
+    {
+        Strategy sigma(regrets.size(), 0.0);
+        if (regrets.empty())
+            return sigma;
+
+        double sum_pos = 0.0;
+        for (double r : regrets)
+            sum_pos += std::max(0.0, r);
+
+        if (sum_pos > 0.0)
+        {
+            for (std::size_t i = 0; i < regrets.size(); ++i)
+                sigma[i] = std::max(0.0, regrets[i]) / sum_pos;
+        }
+        else
+        {
+            double uniform = 1.0 / static_cast<double>(regrets.size());
+            std::fill(sigma.begin(), sigma.end(), uniform);
+        }
+        return sigma;
+    }
+
+    inline Strategy normalise_weights(const std::vector<double> &w)
+    {
+        Strategy p(w.size(), 0.0);
+        if (w.empty())
+            return p;
+
+        double total = 0.0;
+        for (double x : w)
+            total += x;
+
+        if (total > 1e-12)
+        {
+            for (std::size_t i = 0; i < w.size(); ++i)
+                p[i] = w[i] / total;
+        }
+        else
+        {
+            double u = 1.0 / static_cast<double>(w.size());
+            std::fill(p.begin(), p.end(), u);
+        }
+        return p;
+    }
+} // namespace solver_detail
+
+// ============================================================
+// CFR (full tree traversal via enumerate_chance_transitions)
+// ============================================================
 
 template <class Game>
 class CFR
@@ -44,17 +101,14 @@ protected:
     int iteration() const noexcept { return iteration_; };
 
 private:
-    // base owned traversal
     std::pair<double, double> traverse(State const &state, double p1, double p2);
 
-    // ensure vectors are sized and action ordering remembered
     void ensure_infoset(InfoSet const &info_set, std::vector<Action> const &actions);
 
     Strategy regret_match(InfoSet const &info_set);
 
 private:
     Game game_;
-
     int iteration_{0};
 
     bool write_log_file_ = WRITE_LOG_FILE;
@@ -70,7 +124,6 @@ public:
 protected:
     void on_regret(typename Game::InfoSet const &is, std::size_t a, double delta) override
     {
-        // plain accumulate
         this->regret_sum_[is][a] += delta;
     }
 
@@ -90,15 +143,13 @@ public:
 protected:
     void on_regret(typename Game::InfoSet const &is, std::size_t a, double delta) override
     {
-        // CFR+: cumulative regrets are clamped at 0
         double &r = this->regret_sum_[is][a];
         r = std::max(0.0, r + delta);
     }
 
-    // Recommended for strict CFR+:
-    void on_strategy(typename Game::InfoSet const &is, Strategy const &sigma, double reach) override
+    void on_strategy(typename Game::InfoSet const &is, Strategy const &sigma, double /*reach*/) override
     {
-        // CFR+ traditionally weights only by iteration, ignoring reach probability
+        // CFR+ convention in your code: iteration-weighted averaging
         double w = static_cast<double>(this->iteration());
         for (std::size_t a = 0; a < sigma.size(); ++a)
             this->strategy_sum_[is][a] += w * sigma[a];
@@ -147,11 +198,9 @@ std::pair<double, double> CFR<Game>::traverse(State const &state, double p1, dou
         node.second += sigma[a] * util[a].second;
     }
 
-    // average strategy accumulation for the CURRENT player
     double reach = (player == PLAYER_1) ? p1 : p2;
     on_strategy(is, sigma, reach);
 
-    // CFR update (opponent reach weights regrets)
     if (player == PLAYER_1)
     {
         for (std::size_t a = 0; a < actions.size(); ++a)
@@ -184,6 +233,26 @@ void CFR<Game>::ensure_infoset(InfoSet const &is, std::vector<Action> const &act
 }
 
 template <class Game>
+Strategy CFR<Game>::regret_match(InfoSet const &info_set)
+{
+    Strategy &regrets = regret_sum_[info_set];
+    return solver_detail::regret_matching(regrets);
+}
+
+template <class Game>
+StrategyProfile CFR<Game>::get_average_strategy() const
+{
+    StrategyProfile avg;
+
+    for (auto const &[info_set, strat_sum] : strategy_sum_)
+    {
+        avg.emplace(info_set, solver_detail::normalise_weights(strat_sum));
+    }
+
+    return avg;
+}
+
+template <class Game>
 void CFR<Game>::print_metrics(int num_iterations) const
 {
     double total_pos = 0.0;
@@ -191,6 +260,7 @@ void CFR<Game>::print_metrics(int num_iterations) const
 
     for (auto const &[info_set, strategy] : regret_sum_)
     {
+        (void)info_set;
         for (double val : strategy)
         {
             double pos = std::max(0.0, val);
@@ -205,70 +275,8 @@ void CFR<Game>::print_metrics(int num_iterations) const
 }
 
 template <class Game>
-Strategy CFR<Game>::regret_match(InfoSet const &info_set)
-{
-    Strategy &regrets = regret_sum_[info_set]; // creates if missing
-    Strategy positive(regrets.size(), 0.0);
-    double total = 0.0;
-
-    for (size_t i = 0; i < regrets.size(); ++i)
-    {
-        positive[i] = std::max(0.0, regrets[i]);
-        total += positive[i];
-    }
-
-    Strategy sigma(regrets.size(), 0.0);
-    if (total > 0.0)
-    {
-        for (size_t i = 0; i < regrets.size(); ++i)
-            sigma[i] = positive[i] / total;
-    }
-    else if (!sigma.empty())
-    {
-        double uniform = 1.0 / sigma.size();
-        for (double &p : sigma)
-            p = uniform;
-    }
-
-    return sigma;
-}
-
-template <class Game>
-StrategyProfile CFR<Game>::get_average_strategy() const
-{
-    std::unordered_map<InfoSet, Strategy> average_strategy;
-
-    for (auto const &[info_set, strat_sum] : strategy_sum_)
-    {
-        double total = 0.0;
-        for (double v : strat_sum)
-            total += v;
-
-        int n = num_actions_.at(info_set);
-        Strategy strat(n, 0.0);
-
-        if (total > 0.0)
-        {
-            for (int i = 0; i < n; ++i)
-                strat[i] = strat_sum[i] / total;
-        }
-        else if (n > 0)
-        {
-            double uniform = 1.0 / n;
-            for (int i = 0; i < n; ++i)
-                strat[i] = uniform;
-        }
-
-        average_strategy.emplace(info_set, std::move(strat));
-    }
-
-    return average_strategy;
-}
-
-template <class Game>
 void CFR<Game>::train(int num_iterations)
 {
-    // Determine how often to log
     int log_every = num_iterations;
     if (NUM_LOG_INTERVALS > 0)
         log_every = std::max(1, num_iterations / NUM_LOG_INTERVALS);
@@ -289,7 +297,6 @@ void CFR<Game>::train(int num_iterations)
             continue;
 
         int denom = std::max(1, num_iterations / VERBOSE_UPDATE_PERCENT);
-
         if ((i + 1) % denom == 0)
         {
             std::cout << "==== CFR " << ((i + 1) * 100 / num_iterations)
@@ -307,7 +314,6 @@ void CFR<Game>::print_strategies() const
 {
     auto avg = get_average_strategy();
 
-    // Collect and sort infosets for deterministic output
     std::vector<InfoSet> keys;
     keys.reserve(avg.size());
     for (auto const &kv : avg)
@@ -326,8 +332,7 @@ void CFR<Game>::print_strategies() const
 
         if (it == actions_by_infoset_.end())
         {
-            // Fallback
-            for (size_t i = 0; i < strat.size(); ++i)
+            for (std::size_t i = 0; i < strat.size(); ++i)
             {
                 std::cout << "  Action " << i
                           << " : " << std::fixed << std::setprecision(4)
@@ -337,10 +342,10 @@ void CFR<Game>::print_strategies() const
         else
         {
             auto const &actions = it->second;
-            for (size_t i = 0; i < strat.size() && i < actions.size(); ++i)
+            for (std::size_t i = 0; i < strat.size() && i < actions.size(); ++i)
             {
                 std::cout << "  "
-                          << game_.action_to_string(actions[i]) // Game-specific label
+                          << game_.action_to_string(actions[i])
                           << " : " << std::fixed << std::setprecision(4)
                           << strat[i] << "\n";
             }
@@ -349,3 +354,141 @@ void CFR<Game>::print_strategies() const
         std::cout << "\n";
     }
 }
+
+// ============================================================
+// MCCFR (external sampling via game_.sample_chance)
+// ============================================================
+
+template <class Game>
+class MCCFR
+{
+public:
+    using State = typename Game::State;
+    using Action = typename Game::Action;
+    using InfoSet = typename Game::InfoSet;
+
+    explicit MCCFR(Game game)
+        : game_{std::move(game)}, rng_(std::random_device{}()) {}
+
+    void train(int num_iterations)
+    {
+        for (int i = 0; i < num_iterations; ++i)
+        {
+            iteration_++;
+
+            State root = game_.get_initial_state();
+            update(root, PLAYER_1);
+
+            root = game_.get_initial_state();
+            update(root, PLAYER_2);
+
+            if (iteration_ % 1000 == 0)
+                std::cout << "Iteration " << iteration_ << " complete." << std::endl;
+        }
+
+        if (WRITE_LOG_FILE)
+        {
+            DataWriter w(LOG_FILE_NAME);
+            w.log_strategy(get_average_strategy());
+        }
+    }
+
+    StrategyProfile get_average_strategy() const
+    {
+        StrategyProfile avg;
+        for (auto const &[is, sum] : strategy_sum_)
+        {
+            avg.emplace(is, solver_detail::normalise_weights(sum));
+        }
+        return avg;
+    }
+
+private:
+    Game game_;
+    int iteration_{0};
+    std::mt19937 rng_;
+
+    StrategyProfile regret_sum_;
+    StrategyProfile strategy_sum_;
+    std::unordered_map<InfoSet, std::vector<Action>> action_map_;
+
+private:
+    void ensure_infoset(InfoSet const &is, std::vector<Action> const &actions)
+    {
+        if (actions.empty())
+            throw std::runtime_error("MCCFR: reached non-terminal node with 0 legal actions for infoset: " + is);
+
+        auto &r = regret_sum_[is];
+        auto &s = strategy_sum_[is];
+        auto &a = action_map_[is];
+
+        bool mismatch = (r.size() != actions.size()) || (a.size() != actions.size());
+        if (!mismatch)
+        {
+            if (!std::equal(a.begin(), a.end(), actions.begin()))
+                mismatch = true;
+        }
+
+        if (mismatch)
+        {
+            r.assign(actions.size(), 0.0);
+            s.assign(actions.size(), 0.0);
+            a = actions;
+        }
+    }
+
+    double update(State s, int traversing_player)
+    {
+        if (game_.is_terminal(s))
+        {
+            auto payoffs = game_.get_payoffs(s);
+            return (traversing_player == PLAYER_1) ? payoffs.first : payoffs.second;
+        }
+
+        int player = game_.get_current_player(s);
+
+        if (player == CHANCE_PLAYER)
+        {
+            State next = game_.sample_chance(s);
+            return update(next, traversing_player);
+        }
+
+        InfoSet is = game_.get_information_set(s, player);
+        std::vector<Action> actions = game_.get_legal_actions(s);
+
+        ensure_infoset(is, actions);
+
+        Strategy sigma = solver_detail::regret_matching(regret_sum_[is]);
+
+        if (player == traversing_player)
+        {
+            double node_util = 0.0;
+            std::vector<double> action_utils(actions.size(), 0.0);
+
+            for (std::size_t i = 0; i < actions.size(); ++i)
+            {
+                State next = game_.transition(s, actions[i]);
+                action_utils[i] = update(next, traversing_player);
+                node_util += sigma[i] * action_utils[i];
+            }
+
+            for (std::size_t i = 0; i < actions.size(); ++i)
+                regret_sum_[is][i] += (action_utils[i] - node_util);
+
+            return node_util;
+        }
+        else
+        {
+            std::discrete_distribution<int> dist(sigma.begin(), sigma.end());
+            int action_idx = dist(rng_);
+
+            // NOTE: Your comment stands: this averaging is not theoretically correct for MCCFR,
+            // but is kept unchanged here to avoid altering behavior during refactor.
+            for (std::size_t i = 0; i < sigma.size(); ++i)
+                strategy_sum_[is][i] += sigma[i];
+
+            State next = game_.transition(s, actions[action_idx]);
+            return update(next, traversing_player);
+        }
+    }
+};
