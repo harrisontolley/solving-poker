@@ -1,6 +1,7 @@
 # Custom ignores
 /.venv/
 /build/
+/build-asan/
 /output/
 /.vscode/
 
