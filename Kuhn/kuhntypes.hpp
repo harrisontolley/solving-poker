@@ -14,6 +14,11 @@ using KuhnAction = char;
 using Card = std::string;
 inline const Card NO_CARD{" "};
 
+inline constexpr char BET = 'B';
+inline constexpr char CALL = 'C'; // Acts as Check if pot is even, Call if facing bet
+inline constexpr char FOLD = 'F';
+inline constexpr char RAISE = 'R';
+
 inline constexpr std::string H_NO_MOVES_PLAYED = "";
 inline constexpr std::string H_CALL = "C";
 inline constexpr std::string H_BET = "B";
