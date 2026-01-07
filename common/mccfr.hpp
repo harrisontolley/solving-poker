@@ -7,6 +7,7 @@
 #include <iostream>
 #include <algorithm>
 #include <random>
+#include <stdexcept>
 
 template <class Game>
 class MCCFR
@@ -23,18 +24,15 @@ public:
         for (int i = 0; i < num_iterations; ++i)
         {
             iteration_++;
-            // Update Player 1
+
             State root = game_.get_initial_state();
             update(root, PLAYER_1);
 
-            // Update Player 2
             root = game_.get_initial_state();
             update(root, PLAYER_2);
 
             if (iteration_ % 1000 == 0)
-            {
                 std::cout << "Iteration " << iteration_ << " complete." << std::endl;
-            }
         }
 
         if (WRITE_LOG_FILE)
@@ -53,7 +51,13 @@ public:
             for (double v : sum)
                 total += v;
 
-            Strategy s(sum.size());
+            Strategy s(sum.size(), 0.0);
+            if (sum.empty())
+            {
+                avg_strat[is] = s;
+                continue;
+            }
+
             if (total > 1e-9)
             {
                 for (size_t i = 0; i < sum.size(); ++i)
@@ -61,7 +65,7 @@ public:
             }
             else
             {
-                double uniform = 1.0 / sum.size();
+                double uniform = 1.0 / static_cast<double>(sum.size());
                 std::fill(s.begin(), s.end(), uniform);
             }
             avg_strat[is] = s;
@@ -77,6 +81,34 @@ private:
     StrategyProfile regret_sum_;
     StrategyProfile strategy_sum_;
     std::unordered_map<InfoSet, std::vector<Action>> action_map_;
+
+private:
+    void ensure_infoset(InfoSet const &is, std::vector<Action> const &actions)
+    {
+        if (actions.empty())
+            throw std::runtime_error("MCCFR: reached non-terminal node with 0 legal actions for infoset: " + is);
+
+        auto &r = regret_sum_[is];
+        auto &s = strategy_sum_[is];
+        auto &a = action_map_[is];
+
+        bool mismatch = (r.size() != actions.size()) || (a.size() != actions.size());
+        if (!mismatch)
+        {
+            // requires Action to have operator==
+            if (!std::equal(a.begin(), a.end(), actions.begin()))
+                mismatch = true;
+        }
+
+        if (mismatch)
+        {
+            // this indicates imperfect recall merging of states with different legal actions.
+            // We reset to avoid OOB / corruption.
+            r.assign(actions.size(), 0.0);
+            s.assign(actions.size(), 0.0);
+            a = actions;
+        }
+    }
 
     double update(State s, int traversing_player)
     {
@@ -97,19 +129,14 @@ private:
         InfoSet is = game_.get_information_set(s, player);
         std::vector<Action> actions = game_.get_legal_actions(s);
 
-        if (regret_sum_.find(is) == regret_sum_.end())
-        {
-            regret_sum_[is].resize(actions.size(), 0.0);
-            strategy_sum_[is].resize(actions.size(), 0.0);
-            action_map_[is] = actions;
-        }
+        ensure_infoset(is, actions);
 
         Strategy sigma = get_strategy(regret_sum_[is]);
 
         if (player == traversing_player)
         {
             double node_util = 0.0;
-            std::vector<double> action_utils(actions.size());
+            std::vector<double> action_utils(actions.size(), 0.0);
 
             for (size_t i = 0; i < actions.size(); ++i)
             {
@@ -119,9 +146,8 @@ private:
             }
 
             for (size_t i = 0; i < actions.size(); ++i)
-            {
                 regret_sum_[is][i] += (action_utils[i] - node_util);
-            }
+
             return node_util;
         }
         else
@@ -129,10 +155,10 @@ private:
             std::discrete_distribution<int> dist(sigma.begin(), sigma.end());
             int action_idx = dist(rng_);
 
+            // ! averaging is not theoretically correct but fine for now
+            // todo fix
             for (size_t i = 0; i < sigma.size(); ++i)
-            {
                 strategy_sum_[is][i] += sigma[i];
-            }
 
             State next = game_.transition(s, actions[action_idx]);
             return update(next, traversing_player);
@@ -141,17 +167,23 @@ private:
 
     Strategy get_strategy(const std::vector<double> &regrets)
     {
+        Strategy sigma(regrets.size(), 0.0);
+        if (regrets.empty())
+            return sigma;
+
         double sum_pos = 0.0;
-        Strategy sigma(regrets.size());
         for (double r : regrets)
             sum_pos += std::max(0.0, r);
 
-        for (size_t i = 0; i < regrets.size(); ++i)
+        if (sum_pos > 0.0)
         {
-            if (sum_pos > 0)
+            for (size_t i = 0; i < regrets.size(); ++i)
                 sigma[i] = std::max(0.0, regrets[i]) / sum_pos;
-            else
-                sigma[i] = 1.0 / regrets.size();
+        }
+        else
+        {
+            double uniform = 1.0 / static_cast<double>(regrets.size());
+            std::fill(sigma.begin(), sigma.end(), uniform);
         }
         return sigma;
     }

@@ -3,6 +3,7 @@
 #include <array>
 #include "commontypes.hpp"
 #include "headsuptypes.hpp"
+#include <random>
 
 struct HeadsUpState
 {
@@ -10,18 +11,25 @@ struct HeadsUpState
     double p2_contribution{BIG_BLIND};
     double pot{SMALL_BLIND + BIG_BLIND};
 
+    // Stack tracking is implicit: STACK_SIZE - contribution
+
     int betting_round{PREFLOP};
-    int player_turn{CHANCE_PLAYER};
+    int player_turn{PLAYER_1}; // Preflop P1 (SB/Button) acts first
 
-    Card p1_card{NO_CARD};
-    Card p2_card{NO_CARD};
+    bool round_is_over{false};
+    bool game_over{false};
 
-    std::array<Card, 5> public_cards = {NO_CARD, NO_CARD, NO_CARD, NO_CARD, NO_CARD};
+    Card p1_card_1{NO_CARD};
+    Card p1_card_2{NO_CARD};
+    Card p2_card_1{NO_CARD};
+    Card p2_card_2{NO_CARD};
 
-    History preflop_history{H_R_EMPTY};
-    History flop_history{H_R_EMPTY};
-    History turn_history{H_R_EMPTY};
-    History river_history{H_R_EMPTY};
+    std::vector<Card> board_cards;
+
+    // We store the deck in the state to make chance sampling efficient and correct
+    std::vector<Card> deck;
+
+    History current_round_history{H_R_EMPTY};
 };
 
 class HeadsUpGame
@@ -31,10 +39,9 @@ public:
     using Action = HeadsUpAction;
     using InfoSet = ::InfoSet;
 
-    bool verbose{VERBOSE_DEFAULT};
-    bool cfr_verbose{CFR_VERBOSE_DEFAULT};
+    HeadsUpGame();
 
-    State get_initial_state() const;
+    State get_initial_state(); // Not const, uses RNG to shuffle initial deck
 
     bool is_terminal(State const &state) const;
 
@@ -44,21 +51,31 @@ public:
 
     State transition(State const &state, Action action) const;
 
-    std::pair<State, double> chance_transition(State const &state) const;
+    // MCCFR specific: Sample ONE chance outcome
+    State sample_chance(State const &state);
 
     std::pair<double, double> get_payoffs(State const &state) const;
 
+    // Abstraction Logic
     InfoSet get_information_set(State const &state, int player) const;
 
-    void print_game_state(State const &state) const;
+    std::string get_abstraction_key(State const &state, int player) const;
 
     std::string action_to_string(Action a) const;
 
-    std::vector<std::pair<State, double>> enumerate_chance_transitions(State const &state) const;
-
-protected:
 private:
-    int get_hand_strength(char private_card, char public_card) const;
+    // Internal Evaluation Helpers
+    double calculate_hand_strength(Card c1, Card c2, const std::vector<Card> &board) const;
 
-    bool is_round_complete(const History &h) const;
+    int get_rank_idx(Card c1, Card c2, const std::vector<Card> &board) const;
+
+    std::string card_to_string(Card c) const;
+
+    std::uint64_t strength_cache_key(Card c1, Card c2, const std::vector<Card> &board) const;
+
+private:
+    mutable std::mt19937 rng;
+
+    // Cache for deterministic postflop abstraction strength values
+    mutable std::unordered_map<std::uint64_t, double> strength_cache_;
 };
